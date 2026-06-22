@@ -6,623 +6,502 @@
 <title>Eye Gaze Keyboard</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
-
-#video {
-  position: fixed; inset: 0; width: 100%; height: 100%;
-  object-fit: cover;
-  /* NO CSS mirror — we handle direction in JS */
-  z-index: 0;
-}
-#face-canvas {
-  position: fixed; inset: 0; width: 100%; height: 100%;
-  z-index: 1; pointer-events: none;
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
+  background: #0a0a0a;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
+/* ── Key grid fills the whole screen ── */
 #key-grid {
-  position: fixed; left: 0; right: 0;
-  top: 48px; bottom: 44px;
+  position: fixed;
+  left: 0; right: 0;
+  top: 52px; bottom: 48px;
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   grid-template-rows: repeat(6, 1fr);
-  gap: 3px; padding: 3px;
+  gap: 4px; padding: 4px;
   z-index: 2;
 }
 .key {
-  position: relative; border-radius: 10px;
-  background: rgba(0,0,0,0.48);
-  border: 2px solid rgba(255,255,255,0.25);
+  position: relative;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.08);
+  border: 2px solid rgba(255,255,255,0.18);
   display: flex; flex-direction: column;
-  align-items: center; justify-content: center; overflow: hidden;
+  align-items: center; justify-content: center;
+  overflow: hidden; transition: background 0.1s, border-color 0.1s;
 }
 .key .klabel {
-  font-size: clamp(15px, 3.2vw, 30px);
+  font-size: clamp(14px, 3vw, 30px);
   font-weight: 800; color: #fff;
-  text-shadow: 0 2px 6px rgba(0,0,0,0.9);
+  text-shadow: 0 2px 6px rgba(0,0,0,0.6);
   pointer-events: none; position: relative; z-index: 1;
 }
 .key .ksub {
-  font-size: 10px; color: rgba(255,255,255,0.5);
-  pointer-events: none; position: relative; z-index: 1; margin-top: 1px;
+  font-size: 10px; color: rgba(255,255,255,0.45);
+  pointer-events: none; position: relative; z-index: 1; margin-top: 2px;
 }
 .key .dwell-bar {
   position: absolute; bottom: 0; left: 0;
   height: 6px; width: 0%; background: #22c55e;
   border-radius: 0 0 8px 8px;
 }
-.key.gazing { background: rgba(59,130,246,0.55); border-color: #60a5fa; }
-.key.fired  { background: rgba(34,197,94,0.70);  border-color: #4ade80; }
-.key-back   { background: rgba(220,38,38,0.38);  border-color: rgba(248,113,113,0.45); }
-.key-action { background: rgba(109,40,217,0.42); border-color: rgba(167,139,250,0.55); }
+.key.gazing {
+  background: rgba(59,130,246,0.5);
+  border-color: #60a5fa;
+  transform: scale(1.03);
+}
+.key.fired {
+  background: rgba(34,197,94,0.65);
+  border-color: #4ade80;
+}
+.key-back   { background: rgba(220,38,38,0.3);  border-color: rgba(248,113,113,0.4); }
+.key-action { background: rgba(109,40,217,0.35); border-color: rgba(167,139,250,0.5); }
 
-/* Text bar */
+/* ── Text bar (top) ── */
 #text-bar {
-  position: fixed; top: 0; left: 0; right: 0; height: 48px;
-  z-index: 10; background: rgba(0,0,0,0.80);
-  padding: 0 12px; display: flex; align-items: center; gap: 8px;
-  border-bottom: 1px solid rgba(255,255,255,0.12);
+  position: fixed; top: 0; left: 0; right: 0; height: 52px;
+  z-index: 10; background: rgba(0,0,0,0.9);
+  padding: 0 14px; display: flex; align-items: center; gap: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
 }
-#typed-out { flex:1; font-size: clamp(14px,2.6vw,21px); color:#fff; word-break:break-all; }
-#cursor { display:inline-block; width:2px; height:20px; background:#fff; vertical-align:middle; animation:blink 1s step-end infinite; }
-@keyframes blink { 50%{opacity:0} }
+#typed-out {
+  flex: 1; font-size: clamp(15px, 2.8vw, 22px);
+  color: #fff; word-break: break-all; line-height: 1.3;
+}
+#cursor {
+  display: inline-block; width: 2px; height: 22px;
+  background: #fff; vertical-align: middle;
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
 
-/* Bottom bar */
+/* ── Bottom control bar ── */
 #ctrl-bar {
-  position: fixed; bottom: 0; left: 0; right: 0; height: 44px;
-  z-index: 10; background: rgba(0,0,0,0.80);
-  padding: 0 10px; display: flex; align-items: center; gap: 8px;
-  border-top: 1px solid rgba(255,255,255,0.12);
+  position: fixed; bottom: 0; left: 0; right: 0; height: 48px;
+  z-index: 10; background: rgba(0,0,0,0.9);
+  padding: 0 12px; display: flex; align-items: center; gap: 8px;
+  border-top: 1px solid rgba(255,255,255,0.1);
 }
-#ctrl-bar label { font-size: 11px; color: #aaa; white-space: nowrap; }
-.ctrl-slider { flex:1; accent-color:#22c55e; }
-.ctrl-val { font-size: 12px; font-weight: 700; color: #fff; min-width: 28px; }
-#recal-btn {
+#ctrl-bar label { font-size: 11px; color: #888; white-space: nowrap; }
+.ctrl-slider { flex: 1; accent-color: #22c55e; }
+.ctrl-val { font-size: 12px; font-weight: 700; color: #fff; min-width: 30px; }
+.ctrl-btn {
   padding: 5px 10px; font-size: 12px; font-weight: 600;
-  border-radius: 8px; border: 1px solid rgba(255,255,255,0.3);
-  background: rgba(255,255,255,0.12); color: #fff; cursor: pointer; white-space: nowrap;
+  border-radius: 8px; border: 1px solid rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.1); color: #fff; cursor: pointer;
+  white-space: nowrap; flex-shrink: 0;
 }
-#settings-btn {
-  padding: 5px 10px; font-size: 12px; font-weight: 600;
-  border-radius: 8px; border: 1px solid rgba(255,255,255,0.3);
-  background: rgba(255,255,255,0.12); color: #fff; cursor: pointer; white-space: nowrap;
-}
+.ctrl-btn:active { background: rgba(255,255,255,0.2); }
 
-/* Gaze dot */
+/* ── Gaze dot ── */
 #gaze-dot {
-  position: fixed; width: 30px; height: 30px; border-radius: 50%;
-  border: 3px solid #f59e0b; background: rgba(245,158,11,0.28);
-  transform: translate(-50%,-50%); pointer-events: none; z-index: 20; display: none;
+  position: fixed; width: 28px; height: 28px; border-radius: 50%;
+  border: 3px solid #f59e0b;
+  background: rgba(245,158,11,0.25);
+  transform: translate(-50%, -50%);
+  pointer-events: none; z-index: 30; display: none;
+  transition: left 0.04s linear, top 0.04s linear;
 }
 #gaze-pct {
-  position: fixed; z-index: 21; font-size: 12px; font-weight: 700;
-  color: #f59e0b; transform: translate(-50%, 17px);
-  display: none; pointer-events: none; text-shadow: 0 1px 4px #000;
+  position: fixed; z-index: 31;
+  font-size: 11px; font-weight: 700; color: #f59e0b;
+  transform: translate(-50%, 16px);
+  display: none; pointer-events: none;
+  text-shadow: 0 1px 4px #000;
 }
 
-/* Settings panel */
+/* ── Settings panel ── */
 #settings-panel {
   position: fixed; bottom: 48px; left: 0; right: 0;
-  z-index: 30; background: rgba(10,10,10,0.96);
-  border-top: 1px solid rgba(255,255,255,0.15);
-  padding: 14px 16px; display: none; flex-direction: column; gap: 12px;
+  z-index: 20; background: rgba(10,10,10,0.97);
+  border-top: 1px solid rgba(255,255,255,0.12);
+  padding: 16px; display: none; flex-direction: column; gap: 12px;
 }
-#settings-panel h4 { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 2px; }
-.setting-row { display: flex; align-items: center; gap: 10px; }
-.setting-row label { font-size: 12px; color: #ccc; width: 110px; flex-shrink: 0; }
-.setting-row input[type=range] { flex:1; accent-color: #22c55e; }
-.setting-row .sval { font-size: 13px; font-weight: 700; color: #fff; min-width: 42px; text-align: right; }
-.setting-row .sdesc { font-size: 11px; color: #666; margin-top: 2px; }
-.setting-section { border-top: 1px solid rgba(255,255,255,0.08); padding-top: 10px; }
+#settings-panel h4 { font-size: 14px; font-weight: 700; color: #fff; }
+.srow { display: flex; align-items: center; gap: 10px; }
+.srow label { font-size: 12px; color: #ccc; width: 120px; flex-shrink: 0; }
+.srow input[type=range] { flex: 1; accent-color: #22c55e; }
+.srow .sv { font-size: 13px; font-weight: 700; color: #fff; min-width: 40px; text-align: right; }
+.sdesc { font-size: 11px; color: #555; margin-top: -6px; padding-left: 130px; }
+.sdivider { border-top: 1px solid rgba(255,255,255,0.08); margin: 2px 0; }
 #close-settings {
-  align-self: flex-end; padding: 6px 16px; font-size: 13px; font-weight: 600;
+  align-self: flex-end; padding: 7px 20px; font-size: 13px; font-weight: 700;
   border-radius: 8px; border: none; background: #16a34a; color: #fff; cursor: pointer;
 }
 
-/* Start screen */
+/* ── Start / status screen ── */
 #start-screen {
   position: fixed; inset: 0; background: #0a0a0a;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  gap: 16px; z-index: 100; padding: 30px;
+  gap: 18px; z-index: 100; padding: 30px; text-align: center;
 }
-#start-screen h2 { font-size: 26px; font-weight: 800; color: #fff; text-align: center; }
-#start-screen p  { font-size: 15px; color: #aaa; text-align: center; max-width: 340px; line-height: 1.7; }
-#start-btn-main  { padding: 15px 44px; font-size: 17px; font-weight: 700; border-radius: 14px; border: none; background: #16a34a; color: #fff; cursor: pointer; }
-#start-status    { font-size: 14px; color: #f87171; min-height: 20px; text-align: center; }
+#start-screen h2 { font-size: 28px; font-weight: 800; color: #fff; }
+#start-screen p  { font-size: 15px; color: #888; max-width: 360px; line-height: 1.7; }
+#start-screen p strong { color: #ccc; }
+#start-btn-main {
+  padding: 16px 48px; font-size: 18px; font-weight: 700;
+  border-radius: 14px; border: none; background: #16a34a; color: #fff; cursor: pointer;
+}
+#start-btn-main:active { background: #15803d; }
+#start-status { font-size: 13px; color: #f87171; min-height: 20px; }
 
-/* Calibration */
-#cal-screen {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.90);
-  z-index: 50; display: none;
-  align-items: center; justify-content: center;
-}
-#cal-target {
-  position: fixed; width: 44px; height: 44px; border-radius: 50%;
-  background: #ef4444; border: 4px solid #fff;
-  transform: translate(-50%,-50%); z-index: 52; display: none;
-  animation: pulse 0.9s ease-in-out infinite alternate;
-}
-@keyframes pulse {
-  from { box-shadow: 0 0 0 4px rgba(239,68,68,0.5); }
-  to   { box-shadow: 0 0 0 16px rgba(239,68,68,0.0); }
-}
-#cal-ring {
-  position: fixed; width: 44px; height: 44px; border-radius: 50%;
-  border: 3px solid #fff; transform: translate(-50%,-50%);
-  z-index: 53; display: none; pointer-events: none;
-  /* shrinking ring shows countdown */
-}
-#cal-label {
-  position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
-  z-index: 54; background: rgba(0,0,0,0.82); color: #fff;
-  font-size: 17px; font-weight: 700; padding: 18px 28px;
-  border-radius: 14px; text-align: center; display: none;
-  line-height: 1.7; white-space: pre-line; max-width: 320px;
-}
-#cal-progress {
-  position: fixed; bottom: 56px; left: 50%; transform: translateX(-50%);
-  z-index: 54; color: #888; font-size: 13px; display: none;
-}
-#cal-collect-bar {
-  position: fixed; bottom: 70px; left: 10%; right: 10%; height: 6px;
-  background: rgba(255,255,255,0.15); border-radius: 4px; z-index: 54; display: none;
-}
-#cal-collect-fill {
-  height: 100%; width: 0%; background: #22c55e; border-radius: 4px;
-  transition: width 0.05s linear;
-}
-
-/* Badge */
+/* ── Status badge ── */
 #badge {
-  position: fixed; top: 54px; right: 8px; z-index: 15;
-  background: rgba(0,0,0,0.72); border: 1px solid rgba(255,255,255,0.2);
+  position: fixed; top: 58px; right: 10px; z-index: 15;
+  background: rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.18);
   border-radius: 20px; padding: 4px 12px; font-size: 12px; color: #ccc; display: none;
+}
+
+/* ── GazeCloudAPI calibration override: make it fullscreen & styled ── */
+#webgazerVideoContainer {
+  display: none !important; /* hide the small video box GazeCloud adds */
 }
 </style>
 </head>
 <body>
 
-<video id="video" autoplay playsinline muted></video>
-<canvas id="face-canvas"></canvas>
+<!-- Gaze dot -->
 <div id="gaze-dot"></div>
 <div id="gaze-pct"></div>
-<div id="cal-target"></div>
-<div id="cal-ring"></div>
-<div id="cal-label"></div>
-<div id="cal-progress"></div>
-<div id="cal-collect-bar"><div id="cal-collect-fill"></div></div>
 
+<!-- Top text bar -->
 <div id="text-bar">
   <div id="typed-out"><span id="typed"></span><span id="cursor"></span></div>
 </div>
+
 <div id="badge"></div>
 
+<!-- Key grid -->
 <div id="key-grid"></div>
 
+<!-- Bottom control bar -->
 <div id="ctrl-bar">
   <label>Dwell</label>
   <input type="range" class="ctrl-slider" id="dwell-slider" min="500" max="4000" step="100" value="2000">
   <span class="ctrl-val" id="dwell-lbl">2.0s</span>
-  <button id="settings-btn" onclick="toggleSettings()">⚙️ Settings</button>
-  <button id="recal-btn" onclick="startCalibration()">🎯 Calibrate</button>
+  <button class="ctrl-btn" onclick="toggleSettings()">⚙️ Settings</button>
+  <button class="ctrl-btn" onclick="recalibrate()">🎯 Recalibrate</button>
 </div>
 
 <!-- Settings panel -->
 <div id="settings-panel">
   <h4>⚙️ Pointer Settings</h4>
 
-  <div class="setting-row">
+  <div class="srow">
     <label>Smoothing</label>
-    <input type="range" id="smooth-slider" min="1" max="20" step="1" value="12">
-    <span class="sval" id="smooth-lbl">12</span>
+    <input type="range" id="smooth-slider" min="1" max="20" step="1" value="6">
+    <span class="sv" id="smooth-val">6</span>
   </div>
-  <div style="font-size:11px;color:#666;margin-top:-6px;padding-left:120px">Higher = slower, steadier pointer</div>
+  <div class="sdesc">Higher = steadier but slower pointer</div>
 
-  <div class="setting-row setting-section">
+  <div class="sdivider"></div>
+
+  <div class="srow">
     <label>H Sensitivity</label>
     <input type="range" id="hscale-slider" min="50" max="200" step="5" value="100">
-    <span class="sval" id="hscale-lbl">100%</span>
+    <span class="sv" id="hscale-val">100%</span>
   </div>
-  <div style="font-size:11px;color:#666;margin-top:-6px;padding-left:120px">Left/right range. Lower if pointer goes off-screen horizontally.</div>
+  <div class="sdesc">Shrink if pointer goes off-screen left/right</div>
 
-  <div class="setting-row">
+  <div class="srow">
     <label>V Sensitivity</label>
     <input type="range" id="vscale-slider" min="50" max="200" step="5" value="100">
-    <span class="sval" id="vscale-lbl">100%</span>
+    <span class="sv" id="vscale-val">100%</span>
   </div>
-  <div style="font-size:11px;color:#666;margin-top:-6px;padding-left:120px">Up/down range. Lower if pointer goes off-screen vertically.</div>
+  <div class="sdesc">Shrink if pointer goes off-screen up/down</div>
 
-  <div class="setting-row setting-section">
+  <div class="sdivider"></div>
+
+  <div class="srow">
     <label>Flip horizontal</label>
-    <input type="checkbox" id="flip-h" style="width:20px;height:20px;accent-color:#22c55e;">
-    <span style="font-size:12px;color:#ccc;">Invert left/right (if pointer moves the wrong way)</span>
+    <input type="checkbox" id="flip-h" style="width:20px;height:20px;accent-color:#22c55e;cursor:pointer;">
+    <span style="font-size:12px;color:#aaa;">Tick if left/right is inverted</span>
   </div>
-
-  <div class="setting-row">
+  <div class="srow">
     <label>Flip vertical</label>
-    <input type="checkbox" id="flip-v" style="width:20px;height:20px;accent-color:#22c55e;">
-    <span style="font-size:12px;color:#ccc;">Invert up/down (if pointer moves the wrong way)</span>
+    <input type="checkbox" id="flip-v" style="width:20px;height:20px;accent-color:#22c55e;cursor:pointer;">
+    <span style="font-size:12px;color:#aaa;">Tick if up/down is inverted</span>
   </div>
 
-  <button id="close-settings" onclick="toggleSettings()">Done</button>
+  <div class="sdivider"></div>
+  <div style="font-size:11px;color:#555;line-height:1.6;">
+    💡 After changing settings, look around to see if the dot follows your eyes correctly.<br>
+    Use 🎯 Recalibrate any time to redo the calibration.
+  </div>
+
+  <button id="close-settings" onclick="toggleSettings()">✓ Done</button>
 </div>
 
-<div id="cal-screen"></div>
-
+<!-- Start screen -->
 <div id="start-screen">
   <h2>👁 Eye Gaze Keyboard</h2>
-  <p>Keys fill the full screen.<br>After the camera starts, a quick <strong style="color:#fff">5-point calibration</strong> learns your exact eye range.<br><br>Use <strong style="color:#fff">⚙️ Settings</strong> to tune the pointer if needed.</p>
-  <button id="start-btn-main" onclick="startCamera()">▶ Start camera</button>
+  <p>
+    Powered by <strong>GazeCloudAPI</strong> — more precise webcam eye tracking.<br><br>
+    After clicking Start, the API will guide you through a <strong>quick calibration</strong>
+    (look at dots on screen). Then look at any key to type.
+  </p>
+  <button id="start-btn-main" onclick="startTracking()">▶ Start eye tracking</button>
   <div id="start-status"></div>
+  <p style="font-size:12px;color:#444;margin-top:8px;">
+    ⚠️ Requires HTTPS and camera permission.<br>
+    Works in Chrome, Edge, Firefox, Safari.
+  </p>
 </div>
 
+<!-- GazeCloudAPI -->
+<script src="https://api.gazerecorder.com/GazeCloudAPI.js"></script>
+
 <script>
-// ── Layout: 6 cols × 6 rows ────────────────────────────────────
+// ── Layout 6×6 ────────────────────────────────────────────────
 const LAYOUT = [
-  ['Q',''],['W',''],['E',''],['R',''],['T',''],['🔊','SPEAK','key-action'],
-  ['Y',''],['U',''],['I',''],['O',''],['P',''],['🗑','CLEAR','key-action'],
-  ['A',''],['S',''],['D',''],['F',''],['G',''],['📋','COPY','key-action'],
-  ['H',''],['J',''],['K',''],['L',''],['?',''],['!',''],
-  ['Z',''],['X',''],['C',''],['V',''],['B',''],['N',''],
-  ['M',''],['SPACE','SPACE','','','2'],['.',''],[',',''],['⌫','⌫','key-back'],
+  ['Q'],['W'],['E'],['R'],['T'],['🔊','SPEAK','key-action'],
+  ['Y'],['U'],['I'],['O'],['P'],['🗑','CLEAR','key-action'],
+  ['A'],['S'],['D'],['F'],['G'],['📋','COPY','key-action'],
+  ['H'],['J'],['K'],['L'],['?'],['!'],
+  ['Z'],['X'],['C'],['V'],['B'],['N'],
+  ['M'],['SPACE','SPACE','','2'],['.'],[','],['⌫','⌫','key-back'],
 ];
 
 // ── State ──────────────────────────────────────────────────────
-let dwellTime   = 2000;
-let smoothing   = 12;    // higher = more smoothing (slower)
-let hScale      = 1.0;   // horizontal sensitivity multiplier
-let vScale      = 1.0;   // vertical sensitivity multiplier
-let flipH       = false; // invert horizontal
-let flipV       = false; // invert vertical
+let dwellTime = 2000;
+let smoothing = 6;
+let hScale = 1.0, vScale = 1.0;
+let flipH = false, flipV = false;
 
 let typed = '';
 let gazeKey = null, gazeStart = 0, gazeRaf = null;
-let faceMeshObj = null, faceMeshReady = false;
-let loopRunning = false, lastSend = 0;
+let trackingActive = false;
+
+// Smoothed gaze position
+let smoothX = window.innerWidth / 2;
+let smoothY = window.innerHeight / 2;
+let lastGazeX = smoothX, lastGazeY = smoothY;
+
 const keyMap = {};
-
-// Calibration
-let cal = { minH: 0.35, maxH: 0.65, minV: 0.25, maxV: 0.75 };
-let calibrated = false;
-let calStep = 0, calSamples = [];
-let calCollecting = false;
-let rawH = 0.5, rawV = 0.5;
-
-// Smoothed position (exponential moving average)
-let smoothX = 0.5, smoothY = 0.5;
-
-const CAL_POINTS = [
-  ['Look at the\nRED DOT ●\ntop-left',     0.06, 0.10],
-  ['Look at the\nRED DOT ●\ntop-right',    0.94, 0.10],
-  ['Look at the\nRED DOT ●\ncenter',        0.50, 0.50],
-  ['Look at the\nRED DOT ●\nbottom-left',  0.06, 0.90],
-  ['Look at the\nRED DOT ●\nbottom-right', 0.94, 0.90],
-];
 
 // ── Build keyboard ─────────────────────────────────────────────
 function buildGrid() {
   const grid = document.getElementById('key-grid');
   LAYOUT.forEach(item => {
-    const [label, keyOverride, extraClass, sub, spanStr] = item;
+    const [label, keyOverride, extraClass, spanStr] = item;
     const k = keyOverride || label;
     const div = document.createElement('div');
     div.className = 'key' + (extraClass ? ' ' + extraClass : '');
     if (spanStr) div.style.gridColumn = 'span ' + spanStr;
     div.dataset.k = k;
+
     const lbl = document.createElement('div');
     lbl.className = 'klabel';
     lbl.textContent = label;
     div.appendChild(lbl);
-    if (sub) { const s = document.createElement('div'); s.className='ksub'; s.textContent=sub; div.appendChild(s); }
-    const bar = document.createElement('div'); bar.className = 'dwell-bar'; div.appendChild(bar);
+
+    const bar = document.createElement('div');
+    bar.className = 'dwell-bar';
+    div.appendChild(bar);
+
     grid.appendChild(div);
     keyMap[k] = { el: div, bar };
   });
 }
 
-// ── Text ───────────────────────────────────────────────────────
-function setTyped(t) { typed = t; document.getElementById('typed').textContent = t; }
+// ── Text output ────────────────────────────────────────────────
+function setTyped(t) {
+  typed = t;
+  document.getElementById('typed').textContent = t;
+}
+
 function fireKey(k) {
-  if      (k==='⌫')    setTyped(typed.slice(0,-1));
-  else if (k==='SPACE') setTyped(typed+' ');
-  else if (k==='SPEAK') { window.speechSynthesis.cancel(); if(typed.trim()) window.speechSynthesis.speak(new SpeechSynthesisUtterance(typed)); }
-  else if (k==='CLEAR') setTyped('');
-  else if (k==='COPY')  navigator.clipboard.writeText(typed).catch(()=>{});
-  else setTyped(typed+k);
+  if      (k === '⌫')    setTyped(typed.slice(0, -1));
+  else if (k === 'SPACE') setTyped(typed + ' ');
+  else if (k === 'SPEAK') {
+    window.speechSynthesis.cancel();
+    if (typed.trim()) window.speechSynthesis.speak(new SpeechSynthesisUtterance(typed));
+  }
+  else if (k === 'CLEAR') setTyped('');
+  else if (k === 'COPY')  navigator.clipboard.writeText(typed).catch(() => {});
+  else setTyped(typed + k);
+
   const e = keyMap[k];
   if (e) {
-    e.el.classList.remove('gazing'); e.el.classList.add('fired'); e.bar.style.width='0%';
-    setTimeout(()=>e.el.classList.remove('fired'), 400);
+    e.el.classList.remove('gazing');
+    e.el.classList.add('fired');
+    e.bar.style.width = '0%';
+    setTimeout(() => e.el.classList.remove('fired'), 380);
   }
 }
 
-// ── Gaze dwell ─────────────────────────────────────────────────
+// ── Dwell logic ────────────────────────────────────────────────
 function startGaze(k) {
-  if (k===gazeKey) return;
+  if (k === gazeKey) return;
   stopGaze();
-  gazeKey = k; gazeStart = performance.now();
+  gazeKey = k;
+  gazeStart = performance.now();
   if (keyMap[k]) keyMap[k].el.classList.add('gazing');
+
   const pctEl = document.getElementById('gaze-pct');
   function tick() {
     if (!gazeKey) return;
-    const pct = Math.min((performance.now()-gazeStart)/dwellTime, 1);
-    if (keyMap[gazeKey]) keyMap[gazeKey].bar.style.width = (pct*100)+'%';
-    pctEl.textContent = Math.round(pct*100)+'%';
-    if (pct>=1) { const f=gazeKey; stopGaze(); fireKey(f); return; }
+    const pct = Math.min((performance.now() - gazeStart) / dwellTime, 1);
+    if (keyMap[gazeKey]) keyMap[gazeKey].bar.style.width = (pct * 100) + '%';
+    pctEl.textContent = Math.round(pct * 100) + '%';
+    if (pct >= 1) { const f = gazeKey; stopGaze(); fireKey(f); return; }
     gazeRaf = requestAnimationFrame(tick);
   }
   gazeRaf = requestAnimationFrame(tick);
 }
+
 function stopGaze() {
-  if (gazeRaf) { cancelAnimationFrame(gazeRaf); gazeRaf=null; }
-  if (gazeKey && keyMap[gazeKey]) { keyMap[gazeKey].el.classList.remove('gazing'); keyMap[gazeKey].bar.style.width='0%'; }
+  if (gazeRaf) { cancelAnimationFrame(gazeRaf); gazeRaf = null; }
+  if (gazeKey && keyMap[gazeKey]) {
+    keyMap[gazeKey].el.classList.remove('gazing');
+    keyMap[gazeKey].bar.style.width = '0%';
+  }
   gazeKey = null;
 }
-function getKeyAt(x,y) {
-  for (const [k,{el}] of Object.entries(keyMap)) {
+
+function getKeyAt(x, y) {
+  for (const [k, { el }] of Object.entries(keyMap)) {
     const r = el.getBoundingClientRect();
-    if (x>=r.left && x<=r.right && y>=r.top && y<=r.bottom) return k;
+    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return k;
   }
   return null;
 }
 
 // ── Controls ───────────────────────────────────────────────────
-function setBadge(msg) {
-  const b=document.getElementById('badge');
-  b.style.display = msg?'block':'none'; b.textContent=msg;
+function setBadge(msg, color) {
+  const b = document.getElementById('badge');
+  b.style.display = msg ? 'block' : 'none';
+  b.textContent = msg;
+  b.style.color = color || '#ccc';
 }
+
 function toggleSettings() {
   const p = document.getElementById('settings-panel');
-  p.style.display = p.style.display==='flex' ? 'none' : 'flex';
+  p.style.display = p.style.display === 'flex' ? 'none' : 'flex';
 }
 
-document.getElementById('dwell-slider').addEventListener('input', e=>{
-  dwellTime=+e.target.value;
-  document.getElementById('dwell-lbl').textContent=(dwellTime/1000).toFixed(1)+'s';
+function recalibrate() {
+  document.getElementById('settings-panel').style.display = 'none';
+  if (typeof GazeCloudAPI !== 'undefined') {
+    GazeCloudAPI.StopEyeTracking();
+    setTimeout(() => {
+      GazeCloudAPI.StartEyeTracking();
+    }, 500);
+    setBadge('Recalibrating…', '#f59e0b');
+  }
+}
+
+// Sliders
+document.getElementById('dwell-slider').addEventListener('input', e => {
+  dwellTime = +e.target.value;
+  document.getElementById('dwell-lbl').textContent = (dwellTime / 1000).toFixed(1) + 's';
 });
-document.getElementById('smooth-slider').addEventListener('input', e=>{
-  smoothing=+e.target.value;
-  document.getElementById('smooth-lbl').textContent=smoothing;
+document.getElementById('smooth-slider').addEventListener('input', e => {
+  smoothing = +e.target.value;
+  document.getElementById('smooth-val').textContent = smoothing;
 });
-document.getElementById('hscale-slider').addEventListener('input', e=>{
-  hScale=+e.target.value/100;
-  document.getElementById('hscale-lbl').textContent=e.target.value+'%';
+document.getElementById('hscale-slider').addEventListener('input', e => {
+  hScale = +e.target.value / 100;
+  document.getElementById('hscale-val').textContent = e.target.value + '%';
 });
-document.getElementById('vscale-slider').addEventListener('input', e=>{
-  vScale=+e.target.value/100;
-  document.getElementById('vscale-lbl').textContent=e.target.value+'%';
+document.getElementById('vscale-slider').addEventListener('input', e => {
+  vScale = +e.target.value / 100;
+  document.getElementById('vscale-val').textContent = e.target.value + '%';
 });
-document.getElementById('flip-h').addEventListener('change', e=>{ flipH=e.target.checked; });
-document.getElementById('flip-v').addEventListener('change', e=>{ flipV=e.target.checked; });
+document.getElementById('flip-h').addEventListener('change', e => { flipH = e.target.checked; });
+document.getElementById('flip-v').addEventListener('change', e => { flipV = e.target.checked; });
 
-// ── Camera ─────────────────────────────────────────────────────
-async function startCamera() {
-  document.getElementById('start-status').textContent='Requesting camera...';
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:'user', width:{ideal:1280}, height:{ideal:720}}, audio:false
-    });
-    const video = document.getElementById('video');
-    video.srcObject = stream;
-    await video.play();
-    document.getElementById('start-screen').style.display='none';
-    setBadge('Loading face model (~10s first time)…');
-    loadFaceMesh();
-  } catch(e) {
-    const m={NotAllowedError:'Camera permission denied.',NotFoundError:'No camera found.',NotReadableError:'Camera busy (close other apps).'};
-    document.getElementById('start-status').textContent=m[e.name]||('Error: '+e.message);
+// ── GazeCloudAPI integration ───────────────────────────────────
+function startTracking() {
+  const statusEl = document.getElementById('start-status');
+
+  if (typeof GazeCloudAPI === 'undefined') {
+    statusEl.textContent = 'GazeCloudAPI failed to load. Check your internet connection.';
+    return;
   }
-}
 
-// ── MediaPipe ──────────────────────────────────────────────────
-function loadFaceMesh() {
-  function tryUrl(url, fallback) {
-    const s=document.createElement('script'); s.src=url;
-    s.onload=initFaceMesh;
-    s.onerror=()=>fallback?tryUrl(fallback,null):setBadge('Could not load face model');
-    document.head.appendChild(s);
-  }
-  tryUrl(
-    'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js',
-    'https://unpkg.com/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js'
-  );
-}
-function initFaceMesh() {
-  try {
-    faceMeshObj = new FaceMesh({
-      locateFile: f=>`https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/${f}`
-    });
-    faceMeshObj.setOptions({maxNumFaces:1, refineLandmarks:true, minDetectionConfidence:0.6, minTrackingConfidence:0.5});
-    faceMeshObj.onResults(onFaceResults);
-    faceMeshObj.initialize().then(()=>{
-      faceMeshReady=true; loopRunning=true; setBadge('');
-      faceLoop();
-      setTimeout(startCalibration, 600);
-    }).catch(e=>setBadge('Model init failed: '+e.message));
-  } catch(e) { setBadge('Error: '+e.message); }
-}
-function faceLoop() {
-  if (!loopRunning||!faceMeshReady) return;
-  const video=document.getElementById('video');
-  const now=performance.now();
-  if (video.readyState>=2 && now-lastSend>80) {
-    lastSend=now;
-    faceMeshObj.send({image:video}).catch(()=>{});
-  }
-  requestAnimationFrame(faceLoop);
-}
+  statusEl.textContent = 'Starting… allow camera when prompted.';
 
-// ── Calibration ────────────────────────────────────────────────
-function startCalibration() {
-  stopGaze();
-  calStep=0; calSamples=[]; calibrated=false;
-  document.getElementById('key-grid').style.opacity='0.12';
-  document.getElementById('cal-screen').style.display='flex';
-  document.getElementById('cal-target').style.display='block';
-  document.getElementById('cal-label').style.display='block';
-  document.getElementById('cal-progress').style.display='block';
-  document.getElementById('cal-collect-bar').style.display='block';
-  showCalStep();
-}
+  // Called when calibration finishes
+  GazeCloudAPI.OnCalibrationComplete = function () {
+    document.getElementById('start-screen').style.display = 'none';
+    trackingActive = true;
+    setBadge('✅ Calibrated — look at a key!', '#22c55e');
+    setTimeout(() => setBadge(''), 3000);
 
-function showCalStep() {
-  if (calStep>=CAL_POINTS.length) { finishCalibration(); return; }
-  const [msg, xPct, yPct] = CAL_POINTS[calStep];
-  const target = document.getElementById('cal-target');
-  const label  = document.getElementById('cal-label');
-  const prog   = document.getElementById('cal-progress');
-  const fill   = document.getElementById('cal-collect-fill');
+    // Show gaze dot
+    document.getElementById('gaze-dot').style.display = 'block';
+    document.getElementById('gaze-pct').style.display = 'block';
+  };
 
-  target.style.left = (xPct*100)+'%';
-  target.style.top  = (yPct*100)+'%';
-  label.textContent = msg;
-  fill.style.width  = '0%';
-  prog.textContent  = 'Point '+(calStep+1)+' of '+CAL_POINTS.length+' — look at the red dot and hold still';
+  // Called if camera access is denied
+  GazeCloudAPI.OnCamDenied = function () {
+    statusEl.textContent = 'Camera access denied. Please allow camera and try again.';
+  };
 
-  const stepSamples=[];
-  // 1.5s to look at dot, then 1.2s collect
-  setTimeout(()=>{
-    label.textContent = msg+'\n\n✅ Hold still…';
-    calCollecting=true;
-    let elapsed=0;
-    const COLLECT_MS=1200;
-    const iv=setInterval(()=>{
-      elapsed+=50;
-      fill.style.width=(elapsed/COLLECT_MS*100)+'%';
-      stepSamples.push({h:rawH, v:rawV});
-      if (elapsed>=COLLECT_MS) {
-        clearInterval(iv);
-        calCollecting=false;
-        // median sample
-        stepSamples.sort((a,b)=>a.h-b.h);
-        const mid=Math.floor(stepSamples.length/2);
-        calSamples.push({h:stepSamples[mid].h, v:stepSamples[mid].v, xPct, yPct});
-        calStep++;
-        showCalStep();
-      }
-    }, 50);
-  }, 1500);
-}
+  // Called on error
+  GazeCloudAPI.OnError = function (msg) {
+    statusEl.textContent = 'Error: ' + msg;
+    console.error('GazeCloudAPI error:', msg);
+  };
 
-function finishCalibration() {
-  if (calSamples.length>=3) {
-    const hs=calSamples.map(s=>s.h);
-    const vs=calSamples.map(s=>s.v);
-    let minH=Math.min(...hs), maxH=Math.max(...hs);
-    let minV=Math.min(...vs), maxV=Math.max(...vs);
-    // small padding so edges are reachable
-    const pH=(maxH-minH)*0.08, pV=(maxV-minV)*0.08;
-    cal = { minH:minH-pH, maxH:maxH+pH, minV:minV-pV, maxV:maxV+pV };
-    calibrated=true;
-  }
-  document.getElementById('cal-screen').style.display='none';
-  document.getElementById('cal-target').style.display='none';
-  document.getElementById('cal-label').style.display='none';
-  document.getElementById('cal-progress').style.display='none';
-  document.getElementById('cal-collect-bar').style.display='none';
-  document.getElementById('key-grid').style.opacity='1';
-  setBadge(calibrated?'✅ Calibrated — look at a key!':'⚠️ Calibration incomplete — try again');
-  setTimeout(()=>setBadge(''), 3000);
-}
+  // ── Main gaze data callback ──────────────────────────────────
+  GazeCloudAPI.OnResult = function (data) {
+    // data.state: 0=valid, -1=face lost, 1=uncalibrated
+    if (data.state !== 0) {
+      if (data.state === -1) setBadge('👤 Face lost — look at camera', '#f87171');
+      stopGaze();
+      return;
+    }
 
-// ── Face results ───────────────────────────────────────────────
-function onFaceResults(res) {
-  const canvas=document.getElementById('face-canvas');
-  const video=document.getElementById('video');
-  canvas.width=video.videoWidth||1280;
-  canvas.height=video.videoHeight||720;
-  const ctx=canvas.getContext('2d');
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+    setBadge('');
 
-  const dot=document.getElementById('gaze-dot');
-  const pctEl=document.getElementById('gaze-pct');
+    // Raw screen coordinates from GazeCloudAPI (already in document pixels)
+    let x = data.docX;
+    let y = data.docY;
 
-  if (!res.multiFaceLandmarks||!res.multiFaceLandmarks.length) {
-    if (!calCollecting) setBadge('👤 No face — look at camera');
-    dot.style.display='none'; pctEl.style.display='none'; stopGaze(); return;
-  }
-  if (!calCollecting) setBadge('');
+    // Apply sensitivity scaling around screen centre
+    const cx = window.innerWidth  / 2;
+    const cy = window.innerHeight / 2;
+    x = cx + (x - cx) * hScale;
+    y = cy + (y - cy) * vScale;
 
-  const lm=res.multiFaceLandmarks[0];
-  const W=canvas.width, H=canvas.height;
+    // Apply flip
+    if (flipH) x = window.innerWidth  - x;
+    if (flipV) y = window.innerHeight - y;
 
-  // ── Iris landmarks (MediaPipe refined) ──
-  // lm[468] = right iris center (person's right eye)
-  // lm[473] = left  iris center (person's left  eye)
-  const rIris=lm[468];
-  const lIris=lm[473];
+    // Clamp to screen
+    x = Math.max(0, Math.min(window.innerWidth,  x));
+    y = Math.max(0, Math.min(window.innerHeight, y));
 
-  // Draw iris markers (no CSS mirror, so we draw at actual landmark positions)
-  [lIris,rIris].forEach(iris=>{
-    ctx.beginPath();
-    ctx.arc(iris.x*W, iris.y*H, 11, 0, Math.PI*2);
-    ctx.strokeStyle='#f59e0b'; ctx.lineWidth=2.5; ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(iris.x*W, iris.y*H, 3.5, 0, Math.PI*2);
-    ctx.fillStyle='#f59e0b'; ctx.fill();
-  });
+    // Exponential moving average smoothing
+    const alpha = 1 / (smoothing + 1);
+    smoothX += (x - smoothX) * alpha;
+    smoothY += (y - smoothY) * alpha;
 
-  // ── Eye corner landmarks (in original/non-mirrored space) ──
-  // Left eye  (person's left):  inner corner=lm[133], outer corner=lm[33]
-  //   In landmark space: lm[33].x < lm[133].x  (outer is to the LEFT in image)
-  //   iris moves RIGHT in image when person looks RIGHT
-  // Right eye (person's right): inner corner=lm[362], outer corner=lm[263]
-  //   lm[263].x > lm[362].x  (outer is to the RIGHT in image)
+    // Move gaze dot
+    const dot   = document.getElementById('gaze-dot');
+    const pctEl = document.getElementById('gaze-pct');
+    dot.style.left   = smoothX + 'px';
+    dot.style.top    = smoothY + 'px';
+    pctEl.style.left = smoothX + 'px';
+    pctEl.style.top  = smoothY + 'px';
 
-  // Horizontal: compute iris position within each eye's width
-  // Person looks RIGHT → both irises shift RIGHT (higher x in image coords)
-  const lEyeW = Math.abs(lm[133].x - lm[33].x) || 0.001;
-  const rEyeW = Math.abs(lm[263].x - lm[362].x) || 0.001;
-  const lH = (lIris.x - Math.min(lm[33].x, lm[133].x)) / lEyeW; // 0=left in image, 1=right
-  const rH = (rIris.x - Math.min(lm[362].x, lm[263].x)) / rEyeW;
-  // Average: higher = looking right in image space
-  // Camera is NOT CSS-mirrored now, so image right = screen right — no flip needed by default
-  rawH = (lH + rH) / 2;
+    // Hit-test key under gaze dot
+    if (trackingActive) {
+      const k = getKeyAt(smoothX, smoothY);
+      if (k) startGaze(k);
+      else   stopGaze();
+    }
+  };
 
-  // Vertical: higher = looking down
-  const lEyeH = Math.abs(lm[145].y - lm[159].y) || 0.001;
-  const rEyeH = Math.abs(lm[374].y - lm[386].y) || 0.001;
-  const lV = (lIris.y - Math.min(lm[159].y, lm[145].y)) / lEyeH;
-  const rV = (rIris.y - Math.min(lm[386].y, lm[374].y)) / rEyeH;
-  rawV = (lV + rV) / 2;
+  // Disable click recalibration (your friend can't click)
+  GazeCloudAPI.UseClickRecalibration = false;
 
-  // ── Apply calibration → normalise to [0,1] ──
-  const rangeH = (cal.maxH-cal.minH)||0.001;
-  const rangeV = (cal.maxV-cal.minV)||0.001;
-  let mappedH = (rawH-cal.minH)/rangeH;
-  let mappedV = (rawV-cal.minV)/rangeV;
-
-  // ── Apply sensitivity scaling around centre ──
-  // Scale expands/contracts range around 0.5
-  mappedH = 0.5 + (mappedH-0.5)*hScale;
-  mappedV = 0.5 + (mappedV-0.5)*vScale;
-
-  // ── Apply flip toggles ──
-  if (flipH) mappedH = 1-mappedH;
-  if (flipV) mappedV = 1-mappedV;
-
-  // Clamp
-  mappedH = Math.max(0,Math.min(1,mappedH));
-  mappedV = Math.max(0,Math.min(1,mappedV));
-
-  // ── Exponential moving average smoothing ──
-  // smoothing=1 → alpha=0.5 (fast), smoothing=20 → alpha=0.025 (very slow/steady)
-  const alpha = 1 / (smoothing + 1);
-  smoothX += (mappedH-smoothX)*alpha;
-  smoothY += (mappedV-smoothY)*alpha;
-
-  const sx = smoothX*window.innerWidth;
-  const sy = smoothY*window.innerHeight;
-
-  dot.style.display='block';
-  dot.style.left=sx+'px'; dot.style.top=sy+'px';
-  pctEl.style.display='block';
-  pctEl.style.left=sx+'px'; pctEl.style.top=sy+'px';
-
-  if (!calCollecting && document.getElementById('cal-screen').style.display==='none') {
-    const k=getKeyAt(sx,sy);
-    if (k) startGaze(k); else stopGaze();
-  }
+  GazeCloudAPI.StartEyeTracking();
 }
 
 buildGrid();
