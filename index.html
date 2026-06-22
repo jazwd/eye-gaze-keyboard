@@ -1,444 +1,875 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Eye Gaze Keyboard</title>
-<style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-html, body {
-  width: 100%; height: 100%; overflow: hidden;
-  background: #0a0a0a;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-}
+    <head>
+        <meta charset="UTF-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+        />
+        <title>Eye Gaze Keyboard</title>
+        <style>
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+            html,
+            body {
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+                background: #0a0a0a;
+                font-family:
+                    -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            }
 
-#key-grid {
-  position: fixed;
-  left: 0; right: 0;
-  top: 52px; bottom: 48px;
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  grid-template-rows: repeat(6, 1fr);
-  gap: 4px; padding: 4px;
-  z-index: 2;
-}
-.key {
-  position: relative; border-radius: 10px;
-  background: rgba(255,255,255,0.08);
-  border: 2px solid rgba(255,255,255,0.18);
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  overflow: hidden; transition: background 0.1s, border-color 0.1s;
-}
-.key .klabel {
-  font-size: clamp(14px, 3vw, 30px); font-weight: 800; color: #fff;
-  text-shadow: 0 2px 6px rgba(0,0,0,0.6);
-  pointer-events: none; position: relative; z-index: 1;
-}
-.key .dwell-bar {
-  position: absolute; bottom: 0; left: 0;
-  height: 6px; width: 0%; background: #22c55e;
-  border-radius: 0 0 8px 8px;
-}
-.key.gazing  { background: rgba(59,130,246,0.5);  border-color: #60a5fa; transform: scale(1.03); }
-.key.fired   { background: rgba(34,197,94,0.65);  border-color: #4ade80; }
-.key-back    { background: rgba(220,38,38,0.3);   border-color: rgba(248,113,113,0.4); }
-.key-action  { background: rgba(109,40,217,0.35); border-color: rgba(167,139,250,0.5); }
+            #key-grid {
+                position: fixed;
+                left: 0;
+                right: 0;
+                top: 52px;
+                bottom: 48px;
+                display: grid;
+                grid-template-columns: repeat(6, 1fr);
+                grid-template-rows: repeat(6, 1fr);
+                gap: 4px;
+                padding: 4px;
+                z-index: 2;
+            }
+            .key {
+                position: relative;
+                border-radius: 10px;
+                background: rgba(255, 255, 255, 0.08);
+                border: 2px solid rgba(255, 255, 255, 0.18);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                overflow: hidden;
+                transition:
+                    background 0.1s,
+                    border-color 0.1s;
+            }
+            .key .klabel {
+                font-size: clamp(14px, 3vw, 30px);
+                font-weight: 800;
+                color: #fff;
+                text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+                pointer-events: none;
+                position: relative;
+                z-index: 1;
+            }
+            .key .dwell-bar {
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                height: 6px;
+                width: 0%;
+                background: #22c55e;
+                border-radius: 0 0 8px 8px;
+            }
+            .key.gazing {
+                background: rgba(59, 130, 246, 0.5);
+                border-color: #60a5fa;
+                transform: scale(1.03);
+            }
+            .key.fired {
+                background: rgba(34, 197, 94, 0.65);
+                border-color: #4ade80;
+            }
+            .key-back {
+                background: rgba(220, 38, 38, 0.3);
+                border-color: rgba(248, 113, 113, 0.4);
+            }
+            .key-action {
+                background: rgba(109, 40, 217, 0.35);
+                border-color: rgba(167, 139, 250, 0.5);
+            }
 
-#text-bar {
-  position: fixed; top: 0; left: 0; right: 0; height: 52px;
-  z-index: 10; background: rgba(0,0,0,0.92);
-  padding: 0 14px; display: flex; align-items: center; gap: 10px;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-}
-#typed-out { flex: 1; font-size: clamp(15px,2.8vw,22px); color: #fff; word-break: break-all; }
-#cursor { display: inline-block; width: 2px; height: 22px; background: #fff; vertical-align: middle; animation: blink 1s step-end infinite; }
-@keyframes blink { 50% { opacity: 0; } }
+            #text-bar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 52px;
+                z-index: 10;
+                background: rgba(0, 0, 0, 0.92);
+                padding: 0 14px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            #typed-out {
+                flex: 1;
+                font-size: clamp(15px, 2.8vw, 22px);
+                color: #fff;
+                word-break: break-all;
+            }
+            #cursor {
+                display: inline-block;
+                width: 2px;
+                height: 22px;
+                background: #fff;
+                vertical-align: middle;
+                animation: blink 1s step-end infinite;
+            }
+            @keyframes blink {
+                50% {
+                    opacity: 0;
+                }
+            }
 
-#ctrl-bar {
-  position: fixed; bottom: 0; left: 0; right: 0; height: 48px;
-  z-index: 10; background: rgba(0,0,0,0.92);
-  padding: 0 12px; display: flex; align-items: center; gap: 8px;
-  border-top: 1px solid rgba(255,255,255,0.1);
-}
-#ctrl-bar label { font-size: 11px; color: #888; white-space: nowrap; }
-.ctrl-slider { flex: 1; accent-color: #22c55e; }
-.ctrl-val { font-size: 12px; font-weight: 700; color: #fff; min-width: 30px; }
-.ctrl-btn {
-  padding: 5px 10px; font-size: 12px; font-weight: 600;
-  border-radius: 8px; border: 1px solid rgba(255,255,255,0.25);
-  background: rgba(255,255,255,0.1); color: #fff; cursor: pointer; white-space: nowrap;
-}
+            #ctrl-bar {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: 48px;
+                z-index: 10;
+                background: rgba(0, 0, 0, 0.92);
+                padding: 0 12px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            #ctrl-bar label {
+                font-size: 11px;
+                color: #888;
+                white-space: nowrap;
+            }
+            .ctrl-slider {
+                flex: 1;
+                accent-color: #22c55e;
+            }
+            .ctrl-val {
+                font-size: 12px;
+                font-weight: 700;
+                color: #fff;
+                min-width: 30px;
+            }
+            .ctrl-btn {
+                padding: 5px 10px;
+                font-size: 12px;
+                font-weight: 600;
+                border-radius: 8px;
+                border: 1px solid rgba(255, 255, 255, 0.25);
+                background: rgba(255, 255, 255, 0.1);
+                color: #fff;
+                cursor: pointer;
+                white-space: nowrap;
+            }
 
-#gaze-dot {
-  position: fixed; width: 28px; height: 28px; border-radius: 50%;
-  border: 3px solid #f59e0b; background: rgba(245,158,11,0.25);
-  transform: translate(-50%,-50%); pointer-events: none; z-index: 30; display: none;
-}
-#gaze-pct {
-  position: fixed; z-index: 31; font-size: 11px; font-weight: 700;
-  color: #f59e0b; transform: translate(-50%,16px);
-  display: none; pointer-events: none; text-shadow: 0 1px 4px #000;
-}
+            #gaze-dot {
+                position: fixed;
+                width: 28px;
+                height: 28px;
+                border-radius: 50%;
+                border: 3px solid #f59e0b;
+                background: rgba(245, 158, 11, 0.25);
+                transform: translate(-50%, -50%);
+                pointer-events: none;
+                z-index: 30;
+                display: none;
+            }
+            #gaze-pct {
+                position: fixed;
+                z-index: 31;
+                font-size: 11px;
+                font-weight: 700;
+                color: #f59e0b;
+                transform: translate(-50%, 16px);
+                display: none;
+                pointer-events: none;
+                text-shadow: 0 1px 4px #000;
+            }
 
-#settings-panel {
-  position: fixed; bottom: 48px; left: 0; right: 0; z-index: 20;
-  background: rgba(10,10,10,0.97); border-top: 1px solid rgba(255,255,255,0.12);
-  padding: 16px; display: none; flex-direction: column; gap: 12px;
-}
-#settings-panel h4 { font-size: 14px; font-weight: 700; color: #fff; }
-.srow { display: flex; align-items: center; gap: 10px; }
-.srow label { font-size: 12px; color: #ccc; width: 120px; flex-shrink: 0; }
-.srow input[type=range] { flex: 1; accent-color: #22c55e; }
-.srow .sv { font-size: 13px; font-weight: 700; color: #fff; min-width: 40px; text-align: right; }
-.sdesc { font-size: 11px; color: #555; margin-top: -6px; padding-left: 130px; }
-.sdivider { border-top: 1px solid rgba(255,255,255,0.08); margin: 2px 0; }
-#close-settings {
-  align-self: flex-end; padding: 7px 20px; font-size: 13px; font-weight: 700;
-  border-radius: 8px; border: none; background: #16a34a; color: #fff; cursor: pointer;
-}
+            #settings-panel {
+                position: fixed;
+                bottom: 48px;
+                left: 0;
+                right: 0;
+                z-index: 20;
+                background: rgba(10, 10, 10, 0.97);
+                border-top: 1px solid rgba(255, 255, 255, 0.12);
+                padding: 16px;
+                display: none;
+                flex-direction: column;
+                gap: 12px;
+            }
+            #settings-panel h4 {
+                font-size: 14px;
+                font-weight: 700;
+                color: #fff;
+            }
+            .srow {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .srow label {
+                font-size: 12px;
+                color: #ccc;
+                width: 120px;
+                flex-shrink: 0;
+            }
+            .srow input[type='range'] {
+                flex: 1;
+                accent-color: #22c55e;
+            }
+            .srow .sv {
+                font-size: 13px;
+                font-weight: 700;
+                color: #fff;
+                min-width: 40px;
+                text-align: right;
+            }
+            .sdesc {
+                font-size: 11px;
+                color: #555;
+                margin-top: -6px;
+                padding-left: 130px;
+            }
+            .sdivider {
+                border-top: 1px solid rgba(255, 255, 255, 0.08);
+                margin: 2px 0;
+            }
+            #close-settings {
+                align-self: flex-end;
+                padding: 7px 20px;
+                font-size: 13px;
+                font-weight: 700;
+                border-radius: 8px;
+                border: none;
+                background: #16a34a;
+                color: #fff;
+                cursor: pointer;
+            }
 
-/* Start screen */
-#start-screen {
-  position: fixed; inset: 0; background: #0a0a0a;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: 16px; z-index: 100; padding: 30px; text-align: center;
-}
-#start-screen h2 { font-size: 26px; font-weight: 800; color: #fff; }
-#start-screen p  { font-size: 14px; color: #777; max-width: 380px; line-height: 1.7; }
-#start-screen p strong { color: #bbb; }
-#start-btn-main {
-  padding: 15px 44px; font-size: 17px; font-weight: 700;
-  border-radius: 14px; border: none; background: #16a34a; color: #fff; cursor: pointer;
-}
-#start-status {
-  font-size: 13px; color: #f87171; min-height: 20px;
-  max-width: 380px; line-height: 1.5; text-align: center;
-}
+            /* Start screen */
+            #start-screen {
+                position: fixed;
+                inset: 0;
+                background: #0a0a0a;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 16px;
+                z-index: 100;
+                padding: 30px;
+                text-align: center;
+            }
+            #start-screen h2 {
+                font-size: 26px;
+                font-weight: 800;
+                color: #fff;
+            }
+            #start-screen p {
+                font-size: 14px;
+                color: #777;
+                max-width: 380px;
+                line-height: 1.7;
+            }
+            #start-screen p strong {
+                color: #bbb;
+            }
+            #start-btn-main {
+                padding: 15px 44px;
+                font-size: 17px;
+                font-weight: 700;
+                border-radius: 14px;
+                border: none;
+                background: #16a34a;
+                color: #fff;
+                cursor: pointer;
+            }
+            #start-status {
+                font-size: 13px;
+                color: #f87171;
+                min-height: 20px;
+                max-width: 380px;
+                line-height: 1.5;
+                text-align: center;
+            }
 
-/* Step-by-step loading indicator */
-#load-steps { display: none; flex-direction: column; gap: 8px; width: 320px; }
-.lstep {
-  display: flex; align-items: center; gap: 10px;
-  font-size: 13px; color: #666;
-}
-.lstep .icon { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
-.lstep.done { color: #22c55e; }
-.lstep.active { color: #f59e0b; }
-.lstep.error { color: #f87171; }
+            /* Step-by-step loading indicator */
+            #load-steps {
+                display: none;
+                flex-direction: column;
+                gap: 8px;
+                width: 320px;
+            }
+            .lstep {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                font-size: 13px;
+                color: #666;
+            }
+            .lstep .icon {
+                font-size: 16px;
+                width: 20px;
+                text-align: center;
+                flex-shrink: 0;
+            }
+            .lstep.done {
+                color: #22c55e;
+            }
+            .lstep.active {
+                color: #f59e0b;
+            }
+            .lstep.error {
+                color: #f87171;
+            }
 
-#badge {
-  position: fixed; top: 58px; right: 10px; z-index: 15;
-  background: rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.18);
-  border-radius: 20px; padding: 4px 12px; font-size: 12px; color: #ccc; display: none;
-}
-</style>
-</head>
-<body>
+            #badge {
+                position: fixed;
+                top: 58px;
+                right: 10px;
+                z-index: 15;
+                background: rgba(0, 0, 0, 0.8);
+                border: 1px solid rgba(255, 255, 255, 0.18);
+                border-radius: 20px;
+                padding: 4px 12px;
+                font-size: 12px;
+                color: #ccc;
+                display: none;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="gaze-dot"></div>
+        <div id="gaze-pct"></div>
 
-<div id="gaze-dot"></div>
-<div id="gaze-pct"></div>
+        <div id="text-bar">
+            <div id="typed-out">
+                <span id="typed"></span><span id="cursor"></span>
+            </div>
+        </div>
+        <div id="badge"></div>
+        <div id="key-grid"></div>
 
-<div id="text-bar">
-  <div id="typed-out"><span id="typed"></span><span id="cursor"></span></div>
-</div>
-<div id="badge"></div>
-<div id="key-grid"></div>
+        <div id="ctrl-bar">
+            <label>Dwell</label>
+            <input
+                type="range"
+                class="ctrl-slider"
+                id="dwell-slider"
+                min="500"
+                max="4000"
+                step="100"
+                value="1000"
+            />
+            <span class="ctrl-val" id="dwell-lbl">2.0s</span>
+            <button class="ctrl-btn" onclick="toggleSettings()">
+                ⚙️ Settings
+            </button>
+            <button class="ctrl-btn" onclick="recalibrate()">
+                🎯 Recalibrate
+            </button>
+        </div>
 
-<div id="ctrl-bar">
-  <label>Dwell</label>
-  <input type="range" class="ctrl-slider" id="dwell-slider" min="500" max="4000" step="100" value="2000">
-  <span class="ctrl-val" id="dwell-lbl">2.0s</span>
-  <button class="ctrl-btn" onclick="toggleSettings()">⚙️ Settings</button>
-  <button class="ctrl-btn" onclick="recalibrate()">🎯 Recalibrate</button>
-</div>
+        <div id="settings-panel">
+            <h4>⚙️ Pointer Settings</h4>
+            <div class="srow">
+                <label>Smoothing</label>
+                <input
+                    type="range"
+                    id="smooth-slider"
+                    min="1"
+                    max="20"
+                    step="1"
+                    value="6"
+                />
+                <span class="sv" id="smooth-val">6</span>
+            </div>
+            <div class="sdesc">Higher = steadier but slower pointer</div>
+            <div class="sdivider"></div>
+            <div class="srow">
+                <label>H Sensitivity</label>
+                <input
+                    type="range"
+                    id="hscale-slider"
+                    min="50"
+                    max="200"
+                    step="5"
+                    value="100"
+                />
+                <span class="sv" id="hscale-val">100%</span>
+            </div>
+            <div class="sdesc">
+                Reduce if pointer goes off-screen left/right
+            </div>
+            <div class="srow">
+                <label>V Sensitivity</label>
+                <input
+                    type="range"
+                    id="vscale-slider"
+                    min="50"
+                    max="200"
+                    step="5"
+                    value="100"
+                />
+                <span class="sv" id="vscale-val">100%</span>
+            </div>
+            <div class="sdesc">Reduce if pointer goes off-screen up/down</div>
+            <div class="sdivider"></div>
+            <div class="srow">
+                <label>Flip horizontal</label>
+                <input
+                    type="checkbox"
+                    id="flip-h"
+                    style="
+                        width: 20px;
+                        height: 20px;
+                        accent-color: #22c55e;
+                        cursor: pointer;
+                    "
+                />
+                <span style="font-size: 12px; color: #aaa"
+                    >Tick if left/right is inverted</span
+                >
+            </div>
+            <div class="srow">
+                <label>Flip vertical</label>
+                <input
+                    type="checkbox"
+                    id="flip-v"
+                    style="
+                        width: 20px;
+                        height: 20px;
+                        accent-color: #22c55e;
+                        cursor: pointer;
+                    "
+                />
+                <span style="font-size: 12px; color: #aaa"
+                    >Tick if up/down is inverted</span
+                >
+            </div>
+            <div class="sdivider"></div>
+            <div style="font-size: 11px; color: #555; line-height: 1.6">
+                💡 Use 🎯 Recalibrate any time to redo the eye calibration.
+            </div>
+            <button id="close-settings" onclick="toggleSettings()">
+                ✓ Done
+            </button>
+        </div>
 
-<div id="settings-panel">
-  <h4>⚙️ Pointer Settings</h4>
-  <div class="srow">
-    <label>Smoothing</label>
-    <input type="range" id="smooth-slider" min="1" max="20" step="1" value="6">
-    <span class="sv" id="smooth-val">6</span>
-  </div>
-  <div class="sdesc">Higher = steadier but slower pointer</div>
-  <div class="sdivider"></div>
-  <div class="srow">
-    <label>H Sensitivity</label>
-    <input type="range" id="hscale-slider" min="50" max="200" step="5" value="100">
-    <span class="sv" id="hscale-val">100%</span>
-  </div>
-  <div class="sdesc">Reduce if pointer goes off-screen left/right</div>
-  <div class="srow">
-    <label>V Sensitivity</label>
-    <input type="range" id="vscale-slider" min="50" max="200" step="5" value="100">
-    <span class="sv" id="vscale-val">100%</span>
-  </div>
-  <div class="sdesc">Reduce if pointer goes off-screen up/down</div>
-  <div class="sdivider"></div>
-  <div class="srow">
-    <label>Flip horizontal</label>
-    <input type="checkbox" id="flip-h" style="width:20px;height:20px;accent-color:#22c55e;cursor:pointer;">
-    <span style="font-size:12px;color:#aaa;">Tick if left/right is inverted</span>
-  </div>
-  <div class="srow">
-    <label>Flip vertical</label>
-    <input type="checkbox" id="flip-v" style="width:20px;height:20px;accent-color:#22c55e;cursor:pointer;">
-    <span style="font-size:12px;color:#aaa;">Tick if up/down is inverted</span>
-  </div>
-  <div class="sdivider"></div>
-  <div style="font-size:11px;color:#555;line-height:1.6;">
-    💡 Use 🎯 Recalibrate any time to redo the eye calibration.
-  </div>
-  <button id="close-settings" onclick="toggleSettings()">✓ Done</button>
-</div>
+        <div id="start-screen">
+            <h2>👁 Eye Gaze Keyboard</h2>
+            <p>
+                Powered by <strong>GazeCloudAPI</strong> for precise webcam eye
+                tracking.<br />
+                After clicking Start, follow the on-screen calibration dots,
+                then look at any key to type.
+            </p>
+            <button id="start-btn-main" onclick="startTracking()">
+                ▶ Start eye tracking
+            </button>
+            <div id="start-status"></div>
+            <div id="load-steps">
+                <div class="lstep" id="step-script">
+                    <span class="icon">⏳</span> Loading GazeCloud script…
+                </div>
+                <div class="lstep" id="step-camera">
+                    <span class="icon">⏳</span> Requesting camera…
+                </div>
+                <div class="lstep" id="step-cal">
+                    <span class="icon">⏳</span> Calibration…
+                </div>
+            </div>
+            <p style="font-size: 11px; color: #333; margin-top: 6px">
+                Requires HTTPS · Chrome / Edge / Firefox / Safari · Camera
+                permission
+            </p>
+        </div>
 
-<div id="start-screen">
-  <h2>👁 Eye Gaze Keyboard</h2>
-  <p>Powered by <strong>GazeCloudAPI</strong> for precise webcam eye tracking.<br>
-  After clicking Start, follow the on-screen calibration dots, then look at any key to type.</p>
-  <button id="start-btn-main" onclick="startTracking()">▶ Start eye tracking</button>
-  <div id="start-status"></div>
-  <div id="load-steps">
-    <div class="lstep" id="step-script"><span class="icon">⏳</span> Loading GazeCloud script…</div>
-    <div class="lstep" id="step-camera"><span class="icon">⏳</span> Requesting camera…</div>
-    <div class="lstep" id="step-cal"><span class="icon">⏳</span> Calibration…</div>
-  </div>
-  <p style="font-size:11px;color:#333;margin-top:6px;">
-    Requires HTTPS · Chrome / Edge / Firefox / Safari · Camera permission
-  </p>
-</div>
+        <script>
+            // ── Layout ────────────────────────────────────────────────────
+            const LAYOUT = [
+                ['Q'],
+                ['W'],
+                ['E'],
+                ['R'],
+                ['T'],
+                ['🔊', 'SPEAK', 'key-action'],
+                ['Y'],
+                ['U'],
+                ['I'],
+                ['O'],
+                ['P'],
+                ['📋', 'COPY', 'key-action'],
+                ['A'],
+                ['S'],
+                ['D'],
+                ['F'],
+                ['G'],
+                ['🗑', 'CLEAR', 'key-action'],
+                ['H'],
+                ['J'],
+                ['K'],
+                ['L'],
+                ['?'],
+                ['!'],
+                ['Z'],
+                ['X'],
+                ['C'],
+                ['V'],
+                ['B'],
+                ['N'],
+                ['M'],
+                ['SPACE', 'SPACE', '', '2'],
+                ['.'],
+                [','],
+                ['⌫', '⌫', 'key-back'],
+            ];
 
-<script>
-// ── Layout ────────────────────────────────────────────────────
-const LAYOUT = [
-  ['Q'],['W'],['E'],['R'],['T'],['🔊','SPEAK','key-action'],
-  ['Y'],['U'],['I'],['O'],['P'],['🗑','CLEAR','key-action'],
-  ['A'],['S'],['D'],['F'],['G'],['📋','COPY','key-action'],
-  ['H'],['J'],['K'],['L'],['?'],['!'],
-  ['Z'],['X'],['C'],['V'],['B'],['N'],
-  ['M'],['SPACE','SPACE','','2'],['.'],[','],['⌫','⌫','key-back'],
-];
+            let dwellTime = 2000,
+                smoothing = 6;
+            let hScale = 1.0,
+                vScale = 1.0,
+                flipH = false,
+                flipV = false;
+            let typed = '';
+            let gazeKey = null,
+                gazeStart = 0,
+                gazeRaf = null;
+            let trackingActive = false;
+            let smoothX = window.innerWidth / 2,
+                smoothY = window.innerHeight / 2;
+            const keyMap = {};
 
-let dwellTime = 2000, smoothing = 6;
-let hScale = 1.0, vScale = 1.0, flipH = false, flipV = false;
-let typed = '';
-let gazeKey = null, gazeStart = 0, gazeRaf = null;
-let trackingActive = false;
-let smoothX = window.innerWidth / 2, smoothY = window.innerHeight / 2;
-const keyMap = {};
+            // ── Keyboard ──────────────────────────────────────────────────
+            function buildGrid() {
+                const grid = document.getElementById('key-grid');
+                LAYOUT.forEach((item) => {
+                    const [label, keyOverride, extraClass, spanStr] = item;
+                    const k = keyOverride || label;
+                    const div = document.createElement('div');
+                    div.className =
+                        'key' + (extraClass ? ' ' + extraClass : '');
+                    if (spanStr) div.style.gridColumn = 'span ' + spanStr;
+                    div.dataset.k = k;
+                    const lbl = document.createElement('div');
+                    lbl.className = 'klabel';
+                    lbl.textContent = label;
+                    div.appendChild(lbl);
+                    const bar = document.createElement('div');
+                    bar.className = 'dwell-bar';
+                    div.appendChild(bar);
+                    grid.appendChild(div);
+                    keyMap[k] = { el: div, bar };
+                });
+            }
 
-// ── Keyboard ──────────────────────────────────────────────────
-function buildGrid() {
-  const grid = document.getElementById('key-grid');
-  LAYOUT.forEach(item => {
-    const [label, keyOverride, extraClass, spanStr] = item;
-    const k = keyOverride || label;
-    const div = document.createElement('div');
-    div.className = 'key' + (extraClass ? ' ' + extraClass : '');
-    if (spanStr) div.style.gridColumn = 'span ' + spanStr;
-    div.dataset.k = k;
-    const lbl = document.createElement('div'); lbl.className = 'klabel'; lbl.textContent = label; div.appendChild(lbl);
-    const bar = document.createElement('div'); bar.className = 'dwell-bar'; div.appendChild(bar);
-    grid.appendChild(div);
-    keyMap[k] = { el: div, bar };
-  });
-}
+            function setTyped(t) {
+                typed = t;
+                document.getElementById('typed').textContent = t;
+            }
+            function fireKey(k) {
+                if (k === '⌫') setTyped(typed.slice(0, -1));
+                else if (k === 'SPACE') setTyped(typed + ' ');
+                else if (k === 'SPEAK') {
+                    window.speechSynthesis.cancel();
+                    if (typed.trim())
+                        window.speechSynthesis.speak(
+                            new SpeechSynthesisUtterance(typed),
+                        );
+                } else if (k === 'CLEAR') setTyped('');
+                else if (k === 'COPY')
+                    navigator.clipboard.writeText(typed).catch(() => {});
+                else setTyped(typed + k);
+                const e = keyMap[k];
+                if (e) {
+                    e.el.classList.remove('gazing');
+                    e.el.classList.add('fired');
+                    e.bar.style.width = '0%';
+                    setTimeout(() => e.el.classList.remove('fired'), 380);
+                }
+            }
 
-function setTyped(t) { typed = t; document.getElementById('typed').textContent = t; }
-function fireKey(k) {
-  if      (k==='⌫')    setTyped(typed.slice(0,-1));
-  else if (k==='SPACE') setTyped(typed+' ');
-  else if (k==='SPEAK') { window.speechSynthesis.cancel(); if(typed.trim()) window.speechSynthesis.speak(new SpeechSynthesisUtterance(typed)); }
-  else if (k==='CLEAR') setTyped('');
-  else if (k==='COPY')  navigator.clipboard.writeText(typed).catch(()=>{});
-  else setTyped(typed+k);
-  const e=keyMap[k];
-  if(e){ e.el.classList.remove('gazing'); e.el.classList.add('fired'); e.bar.style.width='0%'; setTimeout(()=>e.el.classList.remove('fired'),380); }
-}
+            function startGaze(k) {
+                if (k === gazeKey) return;
+                stopGaze();
+                gazeKey = k;
+                gazeStart = performance.now();
+                if (keyMap[k]) keyMap[k].el.classList.add('gazing');
+                const pctEl = document.getElementById('gaze-pct');
+                function tick() {
+                    if (!gazeKey) return;
+                    const pct = Math.min(
+                        (performance.now() - gazeStart) / dwellTime,
+                        1,
+                    );
+                    if (keyMap[gazeKey])
+                        keyMap[gazeKey].bar.style.width = pct * 100 + '%';
+                    pctEl.textContent = Math.round(pct * 100) + '%';
+                    if (pct >= 1) {
+                        const f = gazeKey;
+                        stopGaze();
+                        fireKey(f);
+                        return;
+                    }
+                    gazeRaf = requestAnimationFrame(tick);
+                }
+                gazeRaf = requestAnimationFrame(tick);
+            }
+            function stopGaze() {
+                if (gazeRaf) {
+                    cancelAnimationFrame(gazeRaf);
+                    gazeRaf = null;
+                }
+                if (gazeKey && keyMap[gazeKey]) {
+                    keyMap[gazeKey].el.classList.remove('gazing');
+                    keyMap[gazeKey].bar.style.width = '0%';
+                }
+                gazeKey = null;
+            }
+            function getKeyAt(x, y) {
+                for (const [k, { el }] of Object.entries(keyMap)) {
+                    const r = el.getBoundingClientRect();
+                    if (
+                        x >= r.left &&
+                        x <= r.right &&
+                        y >= r.top &&
+                        y <= r.bottom
+                    )
+                        return k;
+                }
+                return null;
+            }
 
-function startGaze(k) {
-  if(k===gazeKey) return;
-  stopGaze(); gazeKey=k; gazeStart=performance.now();
-  if(keyMap[k]) keyMap[k].el.classList.add('gazing');
-  const pctEl=document.getElementById('gaze-pct');
-  function tick() {
-    if(!gazeKey) return;
-    const pct=Math.min((performance.now()-gazeStart)/dwellTime,1);
-    if(keyMap[gazeKey]) keyMap[gazeKey].bar.style.width=(pct*100)+'%';
-    pctEl.textContent=Math.round(pct*100)+'%';
-    if(pct>=1){const f=gazeKey;stopGaze();fireKey(f);return;}
-    gazeRaf=requestAnimationFrame(tick);
-  }
-  gazeRaf=requestAnimationFrame(tick);
-}
-function stopGaze() {
-  if(gazeRaf){cancelAnimationFrame(gazeRaf);gazeRaf=null;}
-  if(gazeKey&&keyMap[gazeKey]){keyMap[gazeKey].el.classList.remove('gazing');keyMap[gazeKey].bar.style.width='0%';}
-  gazeKey=null;
-}
-function getKeyAt(x,y) {
-  for(const[k,{el}]of Object.entries(keyMap)){
-    const r=el.getBoundingClientRect();
-    if(x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom) return k;
-  }
-  return null;
-}
+            function setBadge(msg, color) {
+                const b = document.getElementById('badge');
+                b.style.display = msg ? 'block' : 'none';
+                b.textContent = msg;
+                b.style.color = color || '#ccc';
+            }
+            function toggleSettings() {
+                const p = document.getElementById('settings-panel');
+                p.style.display = p.style.display === 'flex' ? 'none' : 'flex';
+            }
 
-function setBadge(msg,color){ const b=document.getElementById('badge'); b.style.display=msg?'block':'none'; b.textContent=msg; b.style.color=color||'#ccc'; }
-function toggleSettings(){ const p=document.getElementById('settings-panel'); p.style.display=p.style.display==='flex'?'none':'flex'; }
+            function recalibrate() {
+                document.getElementById('settings-panel').style.display =
+                    'none';
+                if (typeof GazeCloudAPI !== 'undefined') {
+                    GazeCloudAPI.StopEyeTracking();
+                    setBadge('Recalibrating…', '#f59e0b');
+                    setTimeout(() => {
+                        GazeCloudAPI.StartEyeTracking();
+                    }, 600);
+                }
+            }
 
-function recalibrate() {
-  document.getElementById('settings-panel').style.display='none';
-  if(typeof GazeCloudAPI!=='undefined'){
-    GazeCloudAPI.StopEyeTracking();
-    setBadge('Recalibrating…','#f59e0b');
-    setTimeout(()=>{ GazeCloudAPI.StartEyeTracking(); },600);
-  }
-}
+            document
+                .getElementById('dwell-slider')
+                .addEventListener('input', (e) => {
+                    dwellTime = +e.target.value;
+                    document.getElementById('dwell-lbl').textContent =
+                        (dwellTime / 1000).toFixed(1) + 's';
+                });
+            document
+                .getElementById('smooth-slider')
+                .addEventListener('input', (e) => {
+                    smoothing = +e.target.value;
+                    document.getElementById('smooth-val').textContent =
+                        smoothing;
+                });
+            document
+                .getElementById('hscale-slider')
+                .addEventListener('input', (e) => {
+                    hScale = +e.target.value / 100;
+                    document.getElementById('hscale-val').textContent =
+                        e.target.value + '%';
+                });
+            document
+                .getElementById('vscale-slider')
+                .addEventListener('input', (e) => {
+                    vScale = +e.target.value / 100;
+                    document.getElementById('vscale-val').textContent =
+                        e.target.value + '%';
+                });
+            document
+                .getElementById('flip-h')
+                .addEventListener('change', (e) => {
+                    flipH = e.target.checked;
+                });
+            document
+                .getElementById('flip-v')
+                .addEventListener('change', (e) => {
+                    flipV = e.target.checked;
+                });
 
-document.getElementById('dwell-slider').addEventListener('input',e=>{ dwellTime=+e.target.value; document.getElementById('dwell-lbl').textContent=(dwellTime/1000).toFixed(1)+'s'; });
-document.getElementById('smooth-slider').addEventListener('input',e=>{ smoothing=+e.target.value; document.getElementById('smooth-val').textContent=smoothing; });
-document.getElementById('hscale-slider').addEventListener('input',e=>{ hScale=+e.target.value/100; document.getElementById('hscale-val').textContent=e.target.value+'%'; });
-document.getElementById('vscale-slider').addEventListener('input',e=>{ vScale=+e.target.value/100; document.getElementById('vscale-val').textContent=e.target.value+'%'; });
-document.getElementById('flip-h').addEventListener('change',e=>{ flipH=e.target.checked; });
-document.getElementById('flip-v').addEventListener('change',e=>{ flipV=e.target.checked; });
+            // ── Step indicators ───────────────────────────────────────────
+            function setStep(id, state, msg) {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.className = 'lstep ' + state;
+                const icons = { done: '✅', active: '⏳', error: '❌' };
+                el.querySelector('.icon').textContent = icons[state] || '⏳';
+                if (msg) el.childNodes[1].textContent = ' ' + msg;
+            }
 
-// ── Step indicators ───────────────────────────────────────────
-function setStep(id, state, msg) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.className = 'lstep ' + state;
-  const icons = { done:'✅', active:'⏳', error:'❌' };
-  el.querySelector('.icon').textContent = icons[state] || '⏳';
-  if (msg) el.childNodes[1].textContent = ' ' + msg;
-}
+            // ── Load GazeCloudAPI dynamically (avoids blocking if CDN is slow) ──
+            function loadGazeCloudScript() {
+                return new Promise((resolve, reject) => {
+                    if (typeof GazeCloudAPI !== 'undefined') {
+                        resolve();
+                        return;
+                    }
+                    const s = document.createElement('script');
+                    s.src = 'https://api.gazerecorder.com/GazeCloudAPI.js';
+                    s.onload = () => {
+                        if (typeof GazeCloudAPI !== 'undefined') resolve();
+                        else
+                            reject(
+                                new Error(
+                                    'GazeCloudAPI object not found after script load',
+                                ),
+                            );
+                    };
+                    s.onerror = () =>
+                        reject(
+                            new Error(
+                                'Script failed to load from api.gazerecorder.com',
+                            ),
+                        );
+                    document.head.appendChild(s);
+                });
+            }
 
-// ── Load GazeCloudAPI dynamically (avoids blocking if CDN is slow) ──
-function loadGazeCloudScript() {
-  return new Promise((resolve, reject) => {
-    if (typeof GazeCloudAPI !== 'undefined') { resolve(); return; }
-    const s = document.createElement('script');
-    s.src = 'https://api.gazerecorder.com/GazeCloudAPI.js';
-    s.onload = () => {
-      if (typeof GazeCloudAPI !== 'undefined') resolve();
-      else reject(new Error('GazeCloudAPI object not found after script load'));
-    };
-    s.onerror = () => reject(new Error('Script failed to load from api.gazerecorder.com'));
-    document.head.appendChild(s);
-  });
-}
+            // ── Main start ────────────────────────────────────────────────
+            async function startTracking() {
+                const statusEl = document.getElementById('start-status');
+                const stepsEl = document.getElementById('load-steps');
+                document.getElementById('start-btn-main').disabled = true;
+                document.getElementById('start-btn-main').textContent =
+                    'Starting…';
+                statusEl.textContent = '';
+                stepsEl.style.display = 'flex';
 
-// ── Main start ────────────────────────────────────────────────
-async function startTracking() {
-  const statusEl = document.getElementById('start-status');
-  const stepsEl  = document.getElementById('load-steps');
-  document.getElementById('start-btn-main').disabled = true;
-  document.getElementById('start-btn-main').textContent = 'Starting…';
-  statusEl.textContent = '';
-  stepsEl.style.display = 'flex';
+                // Step 1: Load script
+                setStep('step-script', 'active', 'Loading GazeCloud script…');
+                try {
+                    await loadGazeCloudScript();
+                    setStep('step-script', 'done', 'GazeCloud script loaded ✓');
+                } catch (e) {
+                    setStep('step-script', 'error', 'Failed to load script');
+                    statusEl.innerHTML =
+                        '❌ Could not load GazeCloudAPI.<br><br>' +
+                        'Possible causes:<br>' +
+                        '• Your domain is not registered at <a href="https://api.gazerecorder.com/register/" target="_blank" style="color:#60a5fa">api.gazerecorder.com/register</a><br>' +
+                        '• Browser is blocking the script (try disabling extensions)<br>' +
+                        '• No internet connection';
+                    document.getElementById('start-btn-main').disabled = false;
+                    document.getElementById('start-btn-main').textContent =
+                        '▶ Try again';
+                    return;
+                }
 
-  // Step 1: Load script
-  setStep('step-script', 'active', 'Loading GazeCloud script…');
-  try {
-    await loadGazeCloudScript();
-    setStep('step-script', 'done', 'GazeCloud script loaded ✓');
-  } catch(e) {
-    setStep('step-script', 'error', 'Failed to load script');
-    statusEl.innerHTML =
-      '❌ Could not load GazeCloudAPI.<br><br>' +
-      'Possible causes:<br>' +
-      '• Your domain is not registered at <a href="https://api.gazerecorder.com/register/" target="_blank" style="color:#60a5fa">api.gazerecorder.com/register</a><br>' +
-      '• Browser is blocking the script (try disabling extensions)<br>' +
-      '• No internet connection';
-    document.getElementById('start-btn-main').disabled = false;
-    document.getElementById('start-btn-main').textContent = '▶ Try again';
-    return;
-  }
+                // Step 2: Camera & calibration
+                setStep('step-camera', 'active', 'Requesting camera…');
 
-  // Step 2: Camera & calibration
-  setStep('step-camera', 'active', 'Requesting camera…');
+                GazeCloudAPI.UseClickRecalibration = false;
 
-  GazeCloudAPI.UseClickRecalibration = false;
+                GazeCloudAPI.OnCamDenied = function () {
+                    setStep('step-camera', 'error', 'Camera access denied');
+                    statusEl.textContent =
+                        '❌ Camera permission denied. Please allow camera access in your browser settings and try again.';
+                    document.getElementById('start-btn-main').disabled = false;
+                    document.getElementById('start-btn-main').textContent =
+                        '▶ Try again';
+                };
 
-  GazeCloudAPI.OnCamDenied = function() {
-    setStep('step-camera', 'error', 'Camera access denied');
-    statusEl.textContent = '❌ Camera permission denied. Please allow camera access in your browser settings and try again.';
-    document.getElementById('start-btn-main').disabled = false;
-    document.getElementById('start-btn-main').textContent = '▶ Try again';
-  };
+                GazeCloudAPI.OnError = function (msg) {
+                    statusEl.textContent = '❌ GazeCloud error: ' + msg;
+                    console.error('GazeCloudAPI:', msg);
+                    document.getElementById('start-btn-main').disabled = false;
+                    document.getElementById('start-btn-main').textContent =
+                        '▶ Try again';
+                };
 
-  GazeCloudAPI.OnError = function(msg) {
-    statusEl.textContent = '❌ GazeCloud error: ' + msg;
-    console.error('GazeCloudAPI:', msg);
-    document.getElementById('start-btn-main').disabled = false;
-    document.getElementById('start-btn-main').textContent = '▶ Try again';
-  };
+                GazeCloudAPI.OnCalibrationComplete = function () {
+                    setStep('step-cal', 'done', 'Calibration complete ✓');
+                    // Hide start screen, show keyboard
+                    document.getElementById('start-screen').style.display =
+                        'none';
+                    trackingActive = true;
+                    document.getElementById('gaze-dot').style.display = 'block';
+                    document.getElementById('gaze-pct').style.display = 'block';
+                    setBadge(
+                        '✅ Calibrated — look at a key to type!',
+                        '#22c55e',
+                    );
+                    setTimeout(() => setBadge(''), 4000);
+                };
 
-  GazeCloudAPI.OnCalibrationComplete = function() {
-    setStep('step-cal', 'done', 'Calibration complete ✓');
-    // Hide start screen, show keyboard
-    document.getElementById('start-screen').style.display = 'none';
-    trackingActive = true;
-    document.getElementById('gaze-dot').style.display = 'block';
-    document.getElementById('gaze-pct').style.display = 'block';
-    setBadge('✅ Calibrated — look at a key to type!', '#22c55e');
-    setTimeout(() => setBadge(''), 4000);
-  };
+                GazeCloudAPI.OnResult = function (data) {
+                    // Once we get first result, camera is confirmed working
+                    if (
+                        document
+                            .getElementById('step-camera')
+                            .className.includes('active')
+                    ) {
+                        setStep('step-camera', 'done', 'Camera active ✓');
+                        setStep(
+                            'step-cal',
+                            'active',
+                            'Follow the calibration dots…',
+                        );
+                    }
 
-  GazeCloudAPI.OnResult = function(data) {
-    // Once we get first result, camera is confirmed working
-    if (document.getElementById('step-camera').className.includes('active')) {
-      setStep('step-camera', 'done', 'Camera active ✓');
-      setStep('step-cal', 'active', 'Follow the calibration dots…');
-    }
+                    if (data.state === -1) {
+                        setBadge('👤 Face lost — look at camera', '#f87171');
+                        stopGaze();
+                        return;
+                    }
+                    if (data.state === 1) return; // uncalibrated, skip
 
-    if (data.state === -1) {
-      setBadge('👤 Face lost — look at camera', '#f87171');
-      stopGaze(); return;
-    }
-    if (data.state === 1) return; // uncalibrated, skip
+                    setBadge('');
 
-    setBadge('');
+                    // Apply sensitivity
+                    let x = data.docX;
+                    let y = data.docY;
+                    const cx = window.innerWidth / 2;
+                    const cy = window.innerHeight / 2;
+                    x = cx + (x - cx) * hScale;
+                    y = cy + (y - cy) * vScale;
 
-    // Apply sensitivity
-    let x = data.docX;
-    let y = data.docY;
-    const cx = window.innerWidth  / 2;
-    const cy = window.innerHeight / 2;
-    x = cx + (x - cx) * hScale;
-    y = cy + (y - cy) * vScale;
+                    // Apply flips
+                    if (flipH) x = window.innerWidth - x;
+                    if (flipV) y = window.innerHeight - y;
 
-    // Apply flips
-    if (flipH) x = window.innerWidth  - x;
-    if (flipV) y = window.innerHeight - y;
+                    // Clamp
+                    x = Math.max(0, Math.min(window.innerWidth, x));
+                    y = Math.max(0, Math.min(window.innerHeight, y));
 
-    // Clamp
-    x = Math.max(0, Math.min(window.innerWidth,  x));
-    y = Math.max(0, Math.min(window.innerHeight, y));
+                    // Smooth
+                    const alpha = 1 / (smoothing + 1);
+                    smoothX += (x - smoothX) * alpha;
+                    smoothY += (y - smoothY) * alpha;
 
-    // Smooth
-    const alpha = 1 / (smoothing + 1);
-    smoothX += (x - smoothX) * alpha;
-    smoothY += (y - smoothY) * alpha;
+                    const dot = document.getElementById('gaze-dot');
+                    const pctEl = document.getElementById('gaze-pct');
+                    dot.style.left = smoothX + 'px';
+                    dot.style.top = smoothY + 'px';
+                    pctEl.style.left = smoothX + 'px';
+                    pctEl.style.top = smoothY + 'px';
 
-    const dot   = document.getElementById('gaze-dot');
-    const pctEl = document.getElementById('gaze-pct');
-    dot.style.left   = smoothX + 'px';
-    dot.style.top    = smoothY + 'px';
-    pctEl.style.left = smoothX + 'px';
-    pctEl.style.top  = smoothY + 'px';
+                    if (trackingActive) {
+                        const k = getKeyAt(smoothX, smoothY);
+                        if (k) startGaze(k);
+                        else stopGaze();
+                    }
+                };
 
-    if (trackingActive) {
-      const k = getKeyAt(smoothX, smoothY);
-      if (k) startGaze(k); else stopGaze();
-    }
-  };
+                GazeCloudAPI.StartEyeTracking();
+            }
 
-  GazeCloudAPI.StartEyeTracking();
-}
-
-buildGrid();
-</script>
-</body>
+            buildGrid();
+        </script>
+    </body>
 </html>
